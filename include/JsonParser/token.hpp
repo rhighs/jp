@@ -6,19 +6,21 @@
 enum TokenType {
     Comma,
     String,
-    Integer,
+    Number,
     ArrayStart,
     ArrayEnd,
     ObjectStart,
     ObjectEnd,
     WhiteSpace,
+    NewLine,
+    Tab,
     Column,
     Bool,
     Any,
     _EOF
 };
 
-using TokenValue = std::variant<std::string, int, char, bool>;
+using TokenValue = std::variant<std::string, double, char, bool>;
 
 class Token {
     TokenType _type;
@@ -38,14 +40,14 @@ public:
         return _value;
     }
 
-    std::string name() {
+    std::string name() const {
         switch (_type) {
             case Comma:
                 return "Comma";
             case String:
                 return "String";
-            case Integer:
-                return "Integer";
+            case Number:
+                return "Number";
             case ArrayStart:
                 return "ArrayStart";
             case ArrayEnd:
@@ -62,6 +64,10 @@ public:
                 return "Bool";
             case _EOF:
                 return "EOF";
+            case NewLine:
+                return "NewLne";
+            case Tab:
+                return "Tab";
             default:
                 return "Any";
         }
