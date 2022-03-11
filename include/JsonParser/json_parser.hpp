@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <variant>
+#include <optional>
 
 #include "JsonParser/token.hpp"
 #include "JsonParser/tokenizer.hpp"
@@ -24,14 +25,6 @@ typedef std::map<std::string, JsonValue> JsonObject;
 typedef std::vector<JsonValue> JsonArray;
 
 class JsonResource {
-    JsonValueType _type;
-
-    int _int_value;
-    bool _bool_value;
-    std::string _string_value;
-
-    JsonArray _array_value;
-    JsonObject _object_value;
 
 public:
     JsonResource() : _type(JsonValueType::Null) {}
@@ -39,8 +32,8 @@ public:
     JsonResource(std::string value)
         : _string_value(value), _type(JsonValueType::String) {}
 
-    JsonResource(int value)
-        : _int_value(value), _type(JsonValueType::Integer) {}
+    JsonResource(double value)
+        : _number_value(value), _type(JsonValueType::Integer) {}
 
     JsonResource(JsonArray value)
         : _array_value(value), _type(JsonValueType::Array) {}
@@ -68,21 +61,68 @@ public:
                 return "Null";
         }
     }
+
+    JsonValueType _type;
+
+    double _number_value;
+    bool _bool_value;
+    std::string _string_value;
+
+    JsonArray _array_value;
+    JsonObject _object_value;
 };
 
 class JsonValue {
-    JsonResource* _resource;
+    JsonResource _resource;
 
 public:
-    JsonValue() : _resource(new JsonResource()) {}
-    JsonValue(JsonResource* resource) : _resource(resource) {}
+    JsonValue() : _resource(JsonResource()) {}
+    JsonValue(JsonResource resource) : _resource(resource) {}
 
     ~JsonValue() {
         //delete _resource;
     }
 
-    const JsonResource* resource() const {
-        return _resource;
+    std::optional<bool> boolean() {
+        if (_resource.type() != JsonValueType::Boolean) {
+            return {};
+        }
+
+        return _resource._bool_value;
+    }
+
+    std::optional<double> number() {
+        if (_resource.type() != JsonValueType::Integer) {
+            return {};
+        }
+
+        return _resource._number_value;
+    }
+
+    std::optional<std::string> string() {
+        if (_resource.type() != JsonValueType::String) {
+            return {};
+        }
+
+        return _resource._string_value;
+    }
+
+    std::optional<JsonValue> at(const std::string& key) {
+        if (_resource.type() != JsonValueType::Object
+            || _resource._object_value.find(key) == _resource._object_value.end()) {
+            return {};
+        }
+
+        return _resource._object_value.at(key);
+    }
+
+    std::optional<JsonValue> at(size_t index) {
+        if (_resource.type() != JsonValueType::Array
+            || index >= _resource._array_value.size()) {
+            return {};
+        }
+
+        return _resource._array_value[index];
     }
 };
 
@@ -96,9 +136,12 @@ public:
     }
 
     JsonValue parse();
+
+private:
     JsonValue value();
     JsonProperty property();
 
-    void parsing_error();
+    void parsing_error(const Token& header);
     void eat(TokenType token_type);
+    void skip_useless_tokens();
 };

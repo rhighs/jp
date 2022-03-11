@@ -2,31 +2,43 @@
 
 #include "JsonParser/json_parser.hpp"
 
-void JsonParser::parsing_error() {
-    std::cerr << "Parsing error: invalid syntax at: " << _tokenizer.pos() << "\n";
-    std::cerr << "Unexpected token: " << _current_token.name() << "\n";
+void JsonParser::parsing_error(const Token& expected) {
+    std::cerr << "\tParsing error: invalid syntax at: " << _tokenizer.pos() << "\n";
+    std::cerr << "\tFound unexpected token: <" << _current_token.name() << "> ";
 
-    if (_current_token.type() == String) {
-        std::cerr << "Token value: " << std::get<std::string>(_current_token.value()) << "\n";
-    }
+    switch (_current_token.type()) {
+        case String:
+            std::cerr << "with value: " << std::get<std::string>(_current_token.value()) << "\n";
+            break;
 
-    if (_current_token.type() == _EOF) {
-        std::cerr << "Token value: " << std::get<char>(_current_token.value()) << "\n";
+        case Number:
+            std::cerr << "with value: " << std::get<double>(_current_token.value()) << "\n";
+            break;
+
+        default:
+            std::cerr << "with value: " << std::get<char>(_current_token.value()) << "\n";
+            break;
     }
+    std::cerr << "\tExpected token: <" << expected.name() << ">\n";
 
     exit(1);
 }
 
 void JsonParser::eat(TokenType token_type) {
     if (_current_token.type() == token_type) {
-        std::cout << "Ate token: " << _current_token.name() << " <---- \n";
+        // std::cout << "Ate token: " << _current_token.name() << " <---- \n";
         _current_token = _tokenizer.next_token();
     } else {
-        std::cout << "Expected token: " << Token(token_type, ' ').name() << "\n";
-        parsing_error();
+        parsing_error(Token(token_type, ' '));
     }
 
-    while (_current_token.type() == WhiteSpace) {
+    skip_useless_tokens();
+}
+
+void JsonParser::skip_useless_tokens() {
+    while (_current_token.type() == WhiteSpace
+        || _current_token.type() == Tab
+        || _current_token.type() == NewLine) {
         _current_token = _tokenizer.next_token();
     }
 }
@@ -45,7 +57,7 @@ JsonProperty JsonParser::property() {
 }
 
 JsonValue JsonParser::value() {
-    JsonResource* resource;
+    JsonResource resource;
 
     switch (_current_token.type()) {
         case ObjectStart: {
@@ -57,7 +69,7 @@ JsonValue JsonParser::value() {
             }
 
             eat(ObjectEnd);
-            resource = new JsonResource(json_object);
+            resource = JsonResource(json_object);
             break;
         }
 
@@ -70,16 +82,16 @@ JsonValue JsonParser::value() {
             }
 
             eat(ArrayEnd);
-            resource = new JsonResource(json_array);
+            resource = JsonResource(json_array);
             break;
         }
 
-        case Integer: {
+        case Number: {
             auto token = _current_token;
 
-            eat(Integer);
-            int value = std::get<int>(token.value());
-            resource = new JsonResource(value);
+            eat(Number);
+            double value = std::get<double>(token.value());
+            resource = JsonResource(value);
             break;
         }
 
@@ -88,7 +100,7 @@ JsonValue JsonParser::value() {
 
             eat(String);
             std::string value = std::get<std::string>(token.value());
-            resource = new JsonResource(value);
+            resource = JsonResource(value);
             break;
         }
 
@@ -97,7 +109,7 @@ JsonValue JsonParser::value() {
 
             eat(Bool);
             bool value = std::get<bool>(token.value());
-            resource = new JsonResource(value);
+            resource = JsonResource(value);
             break;
         }
     }
