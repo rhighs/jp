@@ -149,4 +149,3 @@ bool Tokenizer::can_be_bool() const {
     return _text.substr(_pos, 4) == "true"
         || _text.substr(_pos, 5) == "false";
 }
-

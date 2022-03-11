@@ -47,6 +47,27 @@ public:
 
     JsonResource(JsonObject value)
         : _object_value(value), _type(JsonValueType::Object) {}
+
+    JsonValueType type() const {
+        return _type;
+    }
+
+    std::string name() const {
+        switch (_type) {
+            case JsonValueType::Object:
+                return "Object";
+            case JsonValueType::Array:
+                return "Array";
+            case JsonValueType::Integer:
+                return "Integer";
+            case JsonValueType::Boolean:
+                return "Boolean";
+            case JsonValueType::String:
+                return "String";
+            case JsonValueType::Null:
+                return "Null";
+        }
+    }
 };
 
 class JsonValue {
@@ -58,6 +79,10 @@ public:
 
     ~JsonValue() {
         //delete _resource;
+    }
+
+    const JsonResource* resource() const {
+        return _resource;
     }
 };
 

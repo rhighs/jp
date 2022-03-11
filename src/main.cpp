@@ -39,7 +39,8 @@ int main(void) {
     */
 
     JsonParser parser(tokenizer);
-    parser.parse();
+    auto value = parser.parse();
+    std::cout << value.resource()->name() << std::endl;
 
     return 0;
 }
