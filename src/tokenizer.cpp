@@ -62,11 +62,12 @@ bool Tokenizer::parse_bool() {
         }
 
         bool_string += _current_char;
-        advance();
 
         if (bool_string == "true") {
             return true;
         }
+
+        advance();
     }
 
     if (bool_string != "false") {

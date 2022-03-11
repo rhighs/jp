@@ -24,5 +24,13 @@ public:
         : _text(text), _pos(0), _eof_reached(false), _current_char(_text.at(0)) {}
 
     Token next_token();
+
+    size_t pos() const {
+        return _pos;
+    }
+
+    const std::string& text() const {
+        return _text;
+    }
 };
 
