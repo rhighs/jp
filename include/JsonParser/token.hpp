@@ -60,6 +60,8 @@ public:
                 return "Column";
             case Bool:
                 return "Bool";
+            case _EOF:
+                return "EOF";
             default:
                 return "Any";
         }

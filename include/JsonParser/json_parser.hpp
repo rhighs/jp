@@ -16,12 +16,12 @@ enum class JsonValueType {
     Null
 };
 
-class JsonData;
+class JsonValue;
 class JsonResource;
 
-typedef std::pair<std::string, JsonData> JsonProperty;
-typedef std::map<std::string, JsonData> JsonObject;
-typedef std::vector<JsonData> JsonArray;
+typedef std::pair<std::string, JsonValue> JsonProperty;
+typedef std::map<std::string, JsonValue> JsonObject;
+typedef std::vector<JsonValue> JsonArray;
 
 class JsonResource {
     JsonValueType _type;
@@ -49,14 +49,15 @@ public:
         : _object_value(value), _type(JsonValueType::Object) {}
 };
 
-class JsonData {
+class JsonValue {
     JsonResource* _resource;
 
 public:
-    JsonData(JsonResource* resource) : _resource(resource) {}
+    JsonValue() : _resource(new JsonResource()) {}
+    JsonValue(JsonResource* resource) : _resource(resource) {}
 
-    ~JsonData() {
-        delete _resource;
+    ~JsonValue() {
+        //delete _resource;
     }
 };
 
@@ -65,8 +66,12 @@ class JsonParser {
     Tokenizer _tokenizer;
 
 public:
-    JsonParser(Tokenizer tokenizer) : _tokenizer(tokenizer) {}
+    JsonParser(Tokenizer tokenizer) : _tokenizer(tokenizer) {
+        _current_token = _tokenizer.next_token();
+    }
 
+    JsonValue parse();
+    JsonValue value();
     JsonProperty property();
 
     void parsing_error();

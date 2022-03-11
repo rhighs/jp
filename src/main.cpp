@@ -8,11 +8,12 @@
 
 #include "JsonParser/json_parser.hpp"
 
-const char* json_string = "{ \"ciao\": 12, \"cringe\": true, \"object\": { \"name\": \"skumonti\" }}";
+const char* json_string = "{ \"ciao\": 12, \"cringe\": true, \"object\": { \"name\": \"skumonti\" }, \"some_data\": [1, 2, 3]}";
 
 int main(void) {
     Tokenizer tokenizer(json_string);
 
+    /*
     auto token = tokenizer.next_token();
     while (token.type() != _EOF) {
         std::cout << "Token name: " << token.name() << "\n";
@@ -35,6 +36,10 @@ int main(void) {
 
         token = tokenizer.next_token();
     }
+    */
+
+    JsonParser parser(tokenizer);
+    parser.parse();
 
     return 0;
 }
