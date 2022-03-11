@@ -38,7 +38,7 @@ std::string Tokenizer::parse_string() {
     return parsed_string;
 }
 
-int Tokenizer::parse_integer() {
+double Tokenizer::parse_number() {
     std::string integer_string;
 
     while (is_digit(_current_char)) {
@@ -50,7 +50,7 @@ int Tokenizer::parse_integer() {
         advance();
     }
 
-    return std::stoi(integer_string);
+    return std::stod(integer_string);
 }
 
 bool Tokenizer::parse_bool() {
@@ -80,7 +80,7 @@ bool Tokenizer::parse_bool() {
 Token Tokenizer::next_token() {
     while (!_eof_reached) {
         if (is_digit(_current_char)) {
-            return Token(Integer, parse_integer());
+            return Token(Number, parse_number());
         }
 
         Token t;
@@ -119,6 +119,14 @@ Token Tokenizer::next_token() {
                 t = Token(WhiteSpace, _current_char);
                 break;
             }
+            case '\n': {
+                t = Token(NewLine, _current_char);
+                break;
+            }
+            case '\t': {
+                t = Token(Tab, _current_char);
+                break;
+            }
             default: {
                 if (can_be_bool()) {
                     t = Token(Bool, parse_bool());
@@ -138,7 +146,7 @@ Token Tokenizer::next_token() {
 }
 
 bool Tokenizer::is_digit(char some_char) const {
-    return some_char >= 48 && some_char <= 57;
+    return (some_char >= 48/*0*/ && some_char <= 57/*9*/) || some_char == '.';
 }
 
 bool Tokenizer::is_string_delimiter(char some_char) const {

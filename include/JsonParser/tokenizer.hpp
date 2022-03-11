@@ -15,7 +15,7 @@ class Tokenizer {
 
     void advance();
     bool parse_bool();
-    int parse_integer();
+    double parse_number();
     std::string parse_string();
     void consume_whitespaces();
 
