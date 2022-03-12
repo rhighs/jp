@@ -16,6 +16,7 @@ enum TokenType {
     Tab,
     Column,
     Bool,
+    Null,
     Any,
     _EOF
 };
@@ -68,6 +69,8 @@ public:
                 return "NewLne";
             case Tab:
                 return "Tab";
+            case Null:
+                return "Null";
             default:
                 return "Any";
         }

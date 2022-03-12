@@ -9,14 +9,16 @@ class Tokenizer {
     size_t _pos;
 
     bool can_be_bool() const;
+    bool can_be_null() const;
     void parsing_error() const;
     bool is_digit(char some_char) const;
     bool is_string_delimiter(char some_char) const;
 
     void advance();
+    bool parse_null();
     bool parse_bool();
     double parse_number();
-    std::string parse_string();
+    std::string parse_string(char stop_at);
     void consume_whitespaces();
 
 public:
@@ -33,4 +35,3 @@ public:
         return _text;
     }
 };
-

@@ -7,6 +7,10 @@ void JsonParser::parsing_error(const Token& expected) {
     std::cerr << "\tFound unexpected token: <" << _current_token.name() << "> ";
 
     switch (_current_token.type()) {
+        case Null:
+            std::cerr << "with value: " << "null" << "\n";
+            break;
+
         case String:
             std::cerr << "with value: " << std::get<std::string>(_current_token.value()) << "\n";
             break;
@@ -112,6 +116,15 @@ JsonValue JsonParser::value() {
             resource = JsonResource(value);
             break;
         }
+
+        case Null: {
+            auto token = _current_token;
+
+            eat(Null);
+            // Set type to null and leave all values empty
+            resource = JsonResource();
+            break;
+        }
     }
 
     // If none of these ifs is satisfied, EOF was reached
@@ -127,15 +140,5 @@ JsonValue JsonParser::value() {
 }
 
 JsonValue JsonParser::parse() {
-    std::cout << "Parsing json string: " << _tokenizer.text() << "\n";
     return value();
 }
-
-/*
-https://wesleytsai.io/2015/06/13/a-json-parser/
-<JSON>     ::= <value>
-<value>    ::= <object> | <array> | <boolean> | <string> | <number> | <null>
-<array>    ::= "[" [<value>] {"," <value>}* "]"
-<object>   ::= "{" [<property>] {"," <property>}* "}"
-<property> ::= <string> ":" <value>
-*/

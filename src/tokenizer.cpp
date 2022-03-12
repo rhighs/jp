@@ -23,10 +23,10 @@ void Tokenizer::consume_whitespaces() {
     }
 }
 
-std::string Tokenizer::parse_string() {
+std::string Tokenizer::parse_string(char stop_at) {
     std::string parsed_string;
 
-    while (!is_string_delimiter(_current_char)) {
+    while (_current_char != stop_at) {
         if (_eof_reached) {
             parsing_error();
         }
@@ -51,6 +51,22 @@ double Tokenizer::parse_number() {
     }
 
     return std::stod(integer_string);
+}
+
+bool Tokenizer::parse_null() {
+    std::string null_string;
+
+    for (size_t i = 0; i < 4; ++i) {
+        if (_eof_reached) {
+            parsing_error();
+        }
+
+        null_string += _current_char;
+
+        advance();
+    }
+
+    return null_string == "null";
 }
 
 bool Tokenizer::parse_bool() {
@@ -87,8 +103,9 @@ Token Tokenizer::next_token() {
         switch (_current_char) {
             case '\'': 
             case '\"': {
+                char stop_at = _current_char;
                 advance();
-                t = Token(String, parse_string());
+                t = Token(String, parse_string(stop_at));
                 break;
             }
             case ',': {
@@ -130,8 +147,8 @@ Token Tokenizer::next_token() {
             default: {
                 if (can_be_bool()) {
                     t = Token(Bool, parse_bool());
-                } else {
-                    t = Token(Any, _current_char);
+                } else if (can_be_null()) {
+                    t = Token(Null, parse_null());
                 }
 
                 break;
@@ -149,11 +166,11 @@ bool Tokenizer::is_digit(char some_char) const {
     return (some_char >= 48/*0*/ && some_char <= 57/*9*/) || some_char == '.';
 }
 
-bool Tokenizer::is_string_delimiter(char some_char) const {
-    return some_char == '\'' || some_char == '\"';
-}
-
 bool Tokenizer::can_be_bool() const {
     return _text.substr(_pos, 4) == "true"
         || _text.substr(_pos, 5) == "false";
+}
+
+bool Tokenizer::can_be_null() const {
+    return _text.substr(_pos, 4) == "null";
 }
