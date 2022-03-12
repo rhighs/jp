@@ -1,5 +1,5 @@
 cxx := clang++
-flags := -std=c++17
+flags := -std=c++17 -Wno-switch
 include := -Iinclude
 allsrc := src/main.cpp src/tokenizer.cpp src/json_parser.cpp
 objects := tokenizer.o json_parser.o main.o
