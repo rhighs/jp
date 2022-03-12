@@ -79,10 +79,6 @@ public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
 
-    ~JsonValue() {
-        //delete _resource;
-    }
-
     std::optional<bool> boolean() {
         if (_resource.type() != JsonValueType::Boolean) {
             return {};
@@ -126,12 +122,24 @@ public:
     }
 };
 
+
+/*
+This parser follows the bnf grammar shown below,
+many thanks to this fella.
+
+https://wesleytsai.io/2015/06/13/a-json-parser/
+<JSON>     ::= <value>
+<value>    ::= <object> | <array> | <boolean> | <string> | <number> | <null>
+<array>    ::= "[" [<value>] {"," <value>}* "]"
+<object>   ::= "{" [<property>] {"," <property>}* "}"
+<property> ::= <string> ":" <value>
+*/
 class JsonParser {
     Token _current_token;
     Tokenizer _tokenizer;
 
 public:
-    JsonParser(Tokenizer tokenizer) : _tokenizer(tokenizer) {
+    JsonParser(const std::string& json_string) : _tokenizer(json_string) {
         _current_token = _tokenizer.next_token();
     }
 
