@@ -45,9 +45,28 @@ int main(void)
 
 ### Serializing
 ```cpp
+#include <iostream>
+#include <JsonParser>
+
+// WARNING: Needs improvements, don't use it :)
 int main(void)
 {
-    // TODO unimplemented
+    auto s = json({
+        {"name", json("test")},
+        {"number", json(123)},
+        {"number_decimal", json(123.123)},
+        {"an_array", json({
+                json(true),
+                json_null(/*A null value*/),
+                json("Ned_Flanders"),
+                json({
+                    {"nested", json("some string")}
+                })
+            })}
+    }).serialized();
+
+    std::cout << s << "\n";
+
     return 0;
 }
 ```
