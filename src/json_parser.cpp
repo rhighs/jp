@@ -139,6 +139,6 @@ JsonValue JsonParser::value() {
     return JsonValue(resource);
 }
 
-JsonValue JsonParser::parse() {
-    return value();
+JsonObject JsonParser::parse() {
+    return value().object().value();
 }
