@@ -20,8 +20,11 @@ tokenizer.o:
 json_parser.o:
 	$(cxx) -c src/json_parser.cpp $(include) $(flags)
 
-.PHONY: clean
+.PHONY: clean cleanho
 
 clean:
 	rm -f *.o jp
+
+cleanho:
+	rm header_only/*
 
