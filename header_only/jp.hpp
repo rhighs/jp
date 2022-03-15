@@ -138,8 +138,11 @@ class JsonResource {
 public:
     JsonResource() : _type(JsonValueType::Null) {}
 
-    JsonResource(std::string value)
+    JsonResource(const std::string& value)
         : _string_value(value), _type(JsonValueType::String) {}
+
+    JsonResource(bool value)
+        : _bool_value(value), _type(JsonValueType::Boolean) {}
 
     JsonResource(double value)
         : _number_value(value), _type(JsonValueType::Number) {}
@@ -187,6 +190,14 @@ class JsonValue {
 public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
+
+    /*
+        explicit JsonValue(JsonObject object) : _resource(object) {}
+        explicit JsonValue(JsonArray array) : _resource(array) {}
+        explicit JsonValue(std::string string) : _resource(string) {}
+        explicit JsonValue(double number) : _resource(number) {}
+        explicit JsonValue(bool boolean) : _resource(boolean) {}
+    */
 
     std::optional<bool> boolean() const {
         if (_resource.type() != JsonValueType::Boolean) {
@@ -249,7 +260,14 @@ public:
     std::string serialized() const {
         switch (_resource.type()) {
             case JsonValueType::Number: {
-                return std::to_string(number().value());
+                auto str = std::to_string(number().value());
+                str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+
+                if (*(str.end() - 1) == '.') {
+                    str = str.substr(0, str.size() - 1);
+                }
+
+                return str;
             }
 
             case JsonValueType::String: {
@@ -333,12 +351,33 @@ private:
 };
 
 inline
+JsonObject JsonParser::parse() {
+    return value().object().value();
+}
+
+inline
 JsonValue json(double value) {
     return JsonValue(JsonResource(value));
 }
 
 inline
+JsonValue json(int value) {
+    return JsonValue(JsonResource((double)value));
+}
+
+inline
 JsonValue json(const std::string& value) {
+    return JsonValue(JsonResource(value));
+}
+
+inline
+JsonValue json(const char* value) {
+    std::string string_value = value;
+    return JsonValue(JsonResource(string_value));
+}
+
+inline
+JsonValue json(bool value) {
     return JsonValue(JsonResource(value));
 }
 
