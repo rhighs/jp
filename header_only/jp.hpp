@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <variant>
+#include <string>
 #include <optional>
 
 #include <variant>
@@ -121,7 +122,7 @@ enum class JsonValueType {
     Array,
     Boolean,
     String,
-    Integer,
+    Number,
     Null
 };
 
@@ -141,7 +142,7 @@ public:
         : _string_value(value), _type(JsonValueType::String) {}
 
     JsonResource(double value)
-        : _number_value(value), _type(JsonValueType::Integer) {}
+        : _number_value(value), _type(JsonValueType::Number) {}
 
     JsonResource(JsonArray value)
         : _array_value(value), _type(JsonValueType::Array) {}
@@ -159,8 +160,8 @@ public:
                 return "Object";
             case JsonValueType::Array:
                 return "Array";
-            case JsonValueType::Integer:
-                return "Integer";
+            case JsonValueType::Number:
+                return "Number";
             case JsonValueType::Boolean:
                 return "Boolean";
             case JsonValueType::String:
@@ -187,7 +188,7 @@ public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
 
-    std::optional<bool> boolean() {
+    std::optional<bool> boolean() const {
         if (_resource.type() != JsonValueType::Boolean) {
             return {};
         }
@@ -195,15 +196,15 @@ public:
         return _resource._bool_value;
     }
 
-    std::optional<double> number() {
-        if (_resource.type() != JsonValueType::Integer) {
+    std::optional<double> number() const {
+        if (_resource.type() != JsonValueType::Number) {
             return {};
         }
 
         return _resource._number_value;
     }
 
-    std::optional<std::string> string() {
+    std::optional<std::string> string() const {
         if (_resource.type() != JsonValueType::String) {
             return {};
         }
@@ -211,7 +212,7 @@ public:
         return _resource._string_value;
     }
 
-    std::optional<JsonValue> at(const std::string& key) {
+    std::optional<JsonValue> at(const std::string& key) const {
         if (_resource.type() != JsonValueType::Object
             || _resource._object_value.find(key) == _resource._object_value.end()) {
             return {};
@@ -220,7 +221,15 @@ public:
         return _resource._object_value.at(key);
     }
 
-    std::optional<JsonValue> at(size_t index) {
+    std::optional<JsonObject> object() const {
+        if (_resource.type() != JsonValueType::Object) {
+            return {};
+        }
+
+        return _resource._object_value;
+    }
+
+    std::optional<JsonValue> at(size_t index) const {
         if (_resource.type() != JsonValueType::Array
             || index >= _resource._array_value.size()) {
             return {};
@@ -228,6 +237,68 @@ public:
 
         return _resource._array_value[index];
     }
+
+    std::optional<JsonArray> array() const {
+        if (_resource.type() != JsonValueType::Array) {
+            return {};
+        }
+
+        return _resource._array_value;
+    }
+
+    std::string serialized() const {
+        switch (_resource.type()) {
+            case JsonValueType::Number: {
+                return std::to_string(number().value());
+            }
+
+            case JsonValueType::String: {
+                return "\"" + string().value() + "\"";
+            }
+
+            case JsonValueType::Boolean: {
+                return boolean().value() ? "true" : "false";
+            }
+
+            case JsonValueType::Null: {
+                return "null";
+            }
+
+            case JsonValueType::Object: {
+                std::string serialized_object = "{";
+
+                size_t i = 0;
+                auto object_ = object().value();
+                for (const auto& pair : object_) {
+                    serialized_object += "\"" + pair.first + "\": ";
+                    serialized_object += pair.second.serialized();
+
+                    if (i++ < object_.size() - 1) {
+                        serialized_object += ", ";
+                    }
+                }
+
+                return serialized_object + "}";
+            }
+
+            case JsonValueType::Array: {
+                std::string serialized_array = "[";
+
+                size_t i = 0;
+                auto array_ = array().value();
+                for (const auto& value : array_) {
+                    serialized_array += value.serialized();
+
+                    if (i++ != array_.size() - 1) {
+                        serialized_array += ", ";
+                    }
+                }
+
+                return serialized_array + "]";
+            }
+        }
+    }
+
 };
 
 /*
@@ -250,7 +321,7 @@ public:
         _current_token = _tokenizer.next_token();
     }
 
-    JsonValue parse();
+    JsonObject parse();
 
 private:
     JsonValue value();
@@ -260,6 +331,31 @@ private:
     void eat(TokenType token_type);
     void skip_useless_tokens();
 };
+
+inline
+JsonValue json(double value) {
+    return JsonValue(JsonResource(value));
+}
+
+inline
+JsonValue json(const std::string& value) {
+    return JsonValue(JsonResource(value));
+}
+
+inline
+JsonValue json(JsonArray value) {
+    return JsonValue(JsonResource(value));
+}
+
+inline
+JsonValue json(JsonObject value) {
+    return JsonValue(JsonResource(value));
+}
+
+inline
+JsonValue json_null() {
+    return JsonValue(JsonResource());
+}
 
 void JsonParser::parsing_error(const Token& expected) {
     std::cerr << "\tParsing error: invalid syntax at: " << _tokenizer.pos() << "\n";
@@ -398,8 +494,8 @@ JsonValue JsonParser::value() {
     return JsonValue(resource);
 }
 
-JsonValue JsonParser::parse() {
-    return value();
+JsonObject JsonParser::parse() {
+    return value().object().value();
 }
 #include <string>
 #include <iostream>
@@ -464,7 +560,9 @@ bool Tokenizer::parse_null() {
 
         null_string += _current_char;
 
-        advance();
+        if (i < 3) {
+            advance();
+        }
     }
 
     return null_string == "null";
@@ -484,7 +582,9 @@ bool Tokenizer::parse_bool() {
             return true;
         }
 
-        advance();
+        if (i < 4) {
+            advance();
+        }
     }
 
     if (bool_string != "false") {
