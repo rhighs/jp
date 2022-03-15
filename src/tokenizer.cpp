@@ -63,7 +63,9 @@ bool Tokenizer::parse_null() {
 
         null_string += _current_char;
 
-        advance();
+        if (i < 3) {
+            advance();
+        }
     }
 
     return null_string == "null";
@@ -83,7 +85,9 @@ bool Tokenizer::parse_bool() {
             return true;
         }
 
-        advance();
+        if (i < 4) {
+            advance();
+        }
     }
 
     if (bool_string != "false") {
