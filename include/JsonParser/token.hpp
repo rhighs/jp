@@ -2,8 +2,9 @@
 
 #include <variant>
 #include <string>
+#include <map>
 
-enum TokenType {
+enum class TokenType {
     Comma,
     String,
     Number,
@@ -19,6 +20,28 @@ enum TokenType {
     Null,
     Any,
     _EOF
+};
+
+static const std::map<TokenType, const char*> TokenNamesMap = {
+    {TokenType::Comma, "Comma"},
+    {TokenType::String, "String"},
+    {TokenType::Number, "Number"},
+    {TokenType::ArrayEnd, "Number"},
+    {TokenType::Comma, "Comma"},
+    {TokenType::String, "String"},
+    {TokenType::Number, "Number"},
+    {TokenType::ArrayStart, "ArrayStart"},
+    {TokenType::ArrayEnd, "ArrayEnd"},
+    {TokenType::ObjectStart, "ObjectStart"},
+    {TokenType::ObjectEnd, "ObjectEnd"},
+    {TokenType::WhiteSpace, "WhiteSpace"},
+    {TokenType::NewLine, "NewLine"},
+    {TokenType::Tab, "Tab"},
+    {TokenType::Column, "Column"},
+    {TokenType::Bool, "Bool"},
+    {TokenType::Null, "Null"},
+    {TokenType::Any, "Any"},
+    {TokenType::_EOF, "_EOF"}
 };
 
 using TokenValue = std::variant<std::string, double, char, bool>;
@@ -42,38 +65,7 @@ public:
     }
 
     std::string name() const {
-        switch (_type) {
-            case Comma:
-                return "Comma";
-            case String:
-                return "String";
-            case Number:
-                return "Number";
-            case ArrayStart:
-                return "ArrayStart";
-            case ArrayEnd:
-                return "ArrayEnd";
-            case ObjectStart:
-                return "ObjectStart";
-            case ObjectEnd:
-                return "ObjectEnd";
-            case WhiteSpace:
-                return "WhiteSpace";
-            case Column:
-                return "Column";
-            case Bool:
-                return "Bool";
-            case _EOF:
-                return "EOF";
-            case NewLine:
-                return "NewLne";
-            case Tab:
-                return "Tab";
-            case Null:
-                return "Null";
-            default:
-                return "Any";
-        }
+        return TokenNamesMap.at(_type);
     }   
 };
 

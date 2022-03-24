@@ -7,15 +7,15 @@ void JsonParser::parsing_error(const Token& expected) {
     std::cerr << "\tFound unexpected token: <" << _current_token.name() << "> ";
 
     switch (_current_token.type()) {
-        case Null:
+        case TokenType::Null:
             std::cerr << "with value: " << "null" << "\n";
             break;
 
-        case String:
+        case TokenType::String:
             std::cerr << "with value: " << std::get<std::string>(_current_token.value()) << "\n";
             break;
 
-        case Number:
+        case TokenType::Number:
             std::cerr << "with value: " << std::get<double>(_current_token.value()) << "\n";
             break;
 
@@ -40,9 +40,9 @@ void JsonParser::eat(TokenType token_type) {
 }
 
 void JsonParser::skip_useless_tokens() {
-    while (_current_token.type() == WhiteSpace
-        || _current_token.type() == Tab
-        || _current_token.type() == NewLine) {
+    while (_current_token.type() == TokenType::WhiteSpace
+        || _current_token.type() == TokenType::Tab
+        || _current_token.type() == TokenType::NewLine) {
         _current_token = _tokenizer.next_token();
     }
 }
@@ -50,12 +50,12 @@ void JsonParser::skip_useless_tokens() {
 JsonProperty JsonParser::property() {
     std::string pname;
 
-    if (_current_token.type() == String) {
+    if (_current_token.type() == TokenType::String) {
         pname = std::get<std::string>(_current_token.value());
     }
 
-    eat(String);
-    eat(Column);
+    eat(TokenType::String);
+    eat(TokenType::Column);
 
     return { pname, value() };
 }
@@ -64,76 +64,73 @@ JsonValue JsonParser::value() {
     JsonResource resource;
 
     switch (_current_token.type()) {
-        case ObjectStart: {
-            eat(ObjectStart);
+        case TokenType::ObjectStart: {
+            eat(TokenType::ObjectStart);
             JsonObject json_object;
 
-            while (_current_token.type() != ObjectEnd && _current_token.type() != _EOF) {
+            while (_current_token.type() != TokenType::ObjectEnd && _current_token.type() != TokenType::_EOF) {
                 json_object.insert(property());
             }
 
-            eat(ObjectEnd);
+            eat(TokenType::ObjectEnd);
             resource = JsonResource(json_object);
             break;
         }
 
-        case ArrayStart: {
-            eat(ArrayStart);
+        case TokenType::ArrayStart: {
+            eat(TokenType::ArrayStart);
             JsonArray json_array;
 
-            while (_current_token.type() != ArrayEnd && _current_token.type() != _EOF) {
+            while (_current_token.type() != TokenType::ArrayEnd && _current_token.type() != TokenType::_EOF) {
                 json_array.push_back(value());
             }
 
-            eat(ArrayEnd);
+            eat(TokenType::ArrayEnd);
             resource = JsonResource(json_array);
             break;
         }
 
-        case Number: {
+        case TokenType::Number: {
             auto token = _current_token;
 
-            eat(Number);
+            eat(TokenType::Number);
             double value = std::get<double>(token.value());
             resource = JsonResource(value);
             break;
         }
 
-        case String: {
+        case TokenType::String: {
             auto token = _current_token;
 
-            eat(String);
+            eat(TokenType::String);
             std::string value = std::get<std::string>(token.value());
             resource = JsonResource(value);
             break;
         }
 
-        case Bool: {
+        case TokenType::Bool: {
             auto token = _current_token;
 
-            eat(Bool);
+            eat(TokenType::Bool);
             bool value = std::get<bool>(token.value());
             resource = JsonResource(value);
             break;
         }
 
-        case Null: {
+        case TokenType::Null: {
             auto token = _current_token;
 
-            eat(Null);
+            eat(TokenType::Null);
             // Set type to null and leave all values empty
             resource = JsonResource();
             break;
         }
     }
 
-    // If none of these ifs is satisfied, EOF was reached
-    if (_current_token.type() == _EOF) {
-        return JsonValue(resource);
-    }
-
-    if (_current_token.type() != ObjectEnd && _current_token.type() != ArrayEnd) {
-        eat(Comma);
+    if (_current_token.type() != TokenType::ObjectEnd
+        && _current_token.type() != TokenType::ArrayEnd
+        && _current_token.type() != TokenType::_EOF) {
+        eat(TokenType::Comma);
     }
 
     return JsonValue(resource);

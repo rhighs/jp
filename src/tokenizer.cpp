@@ -100,7 +100,7 @@ bool Tokenizer::parse_bool() {
 Token Tokenizer::next_token() {
     while (!_eof_reached) {
         if (is_digit(_current_char)) {
-            return Token(Number, parse_number());
+            return Token(TokenType::Number, parse_number());
         }
 
         Token t;
@@ -109,50 +109,50 @@ Token Tokenizer::next_token() {
             case '\"': {
                 char stop_at = _current_char;
                 advance();
-                t = Token(String, parse_string(stop_at));
+                t = Token(TokenType::String, parse_string(stop_at));
                 break;
             }
             case ',': {
-                t = Token(Comma, _current_char);
+                t = Token(TokenType::Comma, _current_char);
                 break;
             }
             case '[': {
-                t = Token(ArrayStart, _current_char);
+                t = Token(TokenType::ArrayStart, _current_char);
                 break;
             }
             case ']': {
-                t =  Token(ArrayEnd, _current_char);
+                t =  Token(TokenType::ArrayEnd, _current_char);
                 break;
             }
             case '{': {
-                t = Token(ObjectStart, _current_char);
+                t = Token(TokenType::ObjectStart, _current_char);
                 break;
             }
             case '}': {
-                t = Token(ObjectEnd, _current_char);
+                t = Token(TokenType::ObjectEnd, _current_char);
                 break;
             }
             case ':': {
-                t = Token(Column, _current_char);
+                t = Token(TokenType::Column, _current_char);
                 break;
             }
             case ' ': {
-                t = Token(WhiteSpace, _current_char);
+                t = Token(TokenType::WhiteSpace, _current_char);
                 break;
             }
             case '\n': {
-                t = Token(NewLine, _current_char);
+                t = Token(TokenType::NewLine, _current_char);
                 break;
             }
             case '\t': {
-                t = Token(Tab, _current_char);
+                t = Token(TokenType::Tab, _current_char);
                 break;
             }
             default: {
                 if (can_be_bool()) {
-                    t = Token(Bool, parse_bool());
+                    t = Token(TokenType::Bool, parse_bool());
                 } else if (can_be_null()) {
-                    t = Token(Null, parse_null());
+                    t = Token(TokenType::Null, parse_null());
                 }
 
                 break;
@@ -163,7 +163,7 @@ Token Tokenizer::next_token() {
         return t;
     }
 
-    return Token(_EOF, ' ');
+    return Token(TokenType::_EOF, ' ');
 }
 
 bool Tokenizer::is_digit(char some_char) const {
