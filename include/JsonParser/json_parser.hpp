@@ -18,6 +18,15 @@ enum class JsonValueType {
     Null
 };
 
+static const std::map<JsonValueType, const char*> JsonValueName = {
+    {JsonValueType::Object, "Object"},
+    {JsonValueType::Array, "Array"},
+    {JsonValueType::Boolean, "Boolean"},
+    {JsonValueType::String, "String"},
+    {JsonValueType::Number, "Number"},
+    {JsonValueType::Null, "Null"}
+};
+
 class JsonValue;
 class JsonResource;
 
@@ -50,20 +59,7 @@ public:
     }
 
     std::string name() const {
-        switch (_type) {
-            case JsonValueType::Object:
-                return "Object";
-            case JsonValueType::Array:
-                return "Array";
-            case JsonValueType::Number:
-                return "Number";
-            case JsonValueType::Boolean:
-                return "Boolean";
-            case JsonValueType::String:
-                return "String";
-            case JsonValueType::Null:
-                return "Null";
-        }
+        return JsonValueName.at(_type);
     }
 
     JsonValueType _type;
@@ -82,14 +78,6 @@ class JsonValue {
 public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
-
-    /*
-        explicit JsonValue(JsonObject object) : _resource(object) {}
-        explicit JsonValue(JsonArray array) : _resource(array) {}
-        explicit JsonValue(std::string string) : _resource(string) {}
-        explicit JsonValue(double number) : _resource(number) {}
-        explicit JsonValue(bool boolean) : _resource(boolean) {}
-    */
 
     std::optional<bool> boolean() const {
         if (_resource.type() != JsonValueType::Boolean) {
@@ -241,11 +229,6 @@ private:
     void eat(TokenType token_type);
     void skip_useless_tokens();
 };
-
-inline
-JsonObject JsonParser::parse() {
-    return value().object().value();
-}
 
 inline
 JsonValue json(double value) {
