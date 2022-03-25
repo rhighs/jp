@@ -8,8 +8,9 @@
 
 #include <variant>
 #include <string>
+#include <map>
 
-enum TokenType {
+enum class TokenType {
     Comma,
     String,
     Number,
@@ -25,6 +26,28 @@ enum TokenType {
     Null,
     Any,
     _EOF
+};
+
+static const std::map<TokenType, const char*> TokenNamesMap = {
+    {TokenType::Comma, "Comma"},
+    {TokenType::String, "String"},
+    {TokenType::Number, "Number"},
+    {TokenType::ArrayEnd, "Number"},
+    {TokenType::Comma, "Comma"},
+    {TokenType::String, "String"},
+    {TokenType::Number, "Number"},
+    {TokenType::ArrayStart, "ArrayStart"},
+    {TokenType::ArrayEnd, "ArrayEnd"},
+    {TokenType::ObjectStart, "ObjectStart"},
+    {TokenType::ObjectEnd, "ObjectEnd"},
+    {TokenType::WhiteSpace, "WhiteSpace"},
+    {TokenType::NewLine, "NewLine"},
+    {TokenType::Tab, "Tab"},
+    {TokenType::Column, "Column"},
+    {TokenType::Bool, "Bool"},
+    {TokenType::Null, "Null"},
+    {TokenType::Any, "Any"},
+    {TokenType::_EOF, "_EOF"}
 };
 
 using TokenValue = std::variant<std::string, double, char, bool>;
@@ -48,38 +71,7 @@ public:
     }
 
     std::string name() const {
-        switch (_type) {
-            case Comma:
-                return "Comma";
-            case String:
-                return "String";
-            case Number:
-                return "Number";
-            case ArrayStart:
-                return "ArrayStart";
-            case ArrayEnd:
-                return "ArrayEnd";
-            case ObjectStart:
-                return "ObjectStart";
-            case ObjectEnd:
-                return "ObjectEnd";
-            case WhiteSpace:
-                return "WhiteSpace";
-            case Column:
-                return "Column";
-            case Bool:
-                return "Bool";
-            case _EOF:
-                return "EOF";
-            case NewLine:
-                return "NewLne";
-            case Tab:
-                return "Tab";
-            case Null:
-                return "Null";
-            default:
-                return "Any";
-        }
+        return TokenNamesMap.at(_type);
     }   
 };
 
@@ -126,6 +118,15 @@ enum class JsonValueType {
     Null
 };
 
+static const std::map<JsonValueType, const char*> JsonValueName = {
+    {JsonValueType::Object, "Object"},
+    {JsonValueType::Array, "Array"},
+    {JsonValueType::Boolean, "Boolean"},
+    {JsonValueType::String, "String"},
+    {JsonValueType::Number, "Number"},
+    {JsonValueType::Null, "Null"}
+};
+
 class JsonValue;
 class JsonResource;
 
@@ -158,20 +159,7 @@ public:
     }
 
     std::string name() const {
-        switch (_type) {
-            case JsonValueType::Object:
-                return "Object";
-            case JsonValueType::Array:
-                return "Array";
-            case JsonValueType::Number:
-                return "Number";
-            case JsonValueType::Boolean:
-                return "Boolean";
-            case JsonValueType::String:
-                return "String";
-            case JsonValueType::Null:
-                return "Null";
-        }
+        return JsonValueName.at(_type);
     }
 
     JsonValueType _type;
@@ -190,14 +178,6 @@ class JsonValue {
 public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
-
-    /*
-        explicit JsonValue(JsonObject object) : _resource(object) {}
-        explicit JsonValue(JsonArray array) : _resource(array) {}
-        explicit JsonValue(std::string string) : _resource(string) {}
-        explicit JsonValue(double number) : _resource(number) {}
-        explicit JsonValue(bool boolean) : _resource(boolean) {}
-    */
 
     std::optional<bool> boolean() const {
         if (_resource.type() != JsonValueType::Boolean) {
@@ -351,11 +331,6 @@ private:
 };
 
 inline
-JsonObject JsonParser::parse() {
-    return value().object().value();
-}
-
-inline
 JsonValue json(double value) {
     return JsonValue(JsonResource(value));
 }
@@ -401,15 +376,15 @@ void JsonParser::parsing_error(const Token& expected) {
     std::cerr << "\tFound unexpected token: <" << _current_token.name() << "> ";
 
     switch (_current_token.type()) {
-        case Null:
+        case TokenType::Null:
             std::cerr << "with value: " << "null" << "\n";
             break;
 
-        case String:
+        case TokenType::String:
             std::cerr << "with value: " << std::get<std::string>(_current_token.value()) << "\n";
             break;
 
-        case Number:
+        case TokenType::Number:
             std::cerr << "with value: " << std::get<double>(_current_token.value()) << "\n";
             break;
 
@@ -434,9 +409,9 @@ void JsonParser::eat(TokenType token_type) {
 }
 
 void JsonParser::skip_useless_tokens() {
-    while (_current_token.type() == WhiteSpace
-        || _current_token.type() == Tab
-        || _current_token.type() == NewLine) {
+    while (_current_token.type() == TokenType::WhiteSpace
+        || _current_token.type() == TokenType::Tab
+        || _current_token.type() == TokenType::NewLine) {
         _current_token = _tokenizer.next_token();
     }
 }
@@ -444,12 +419,12 @@ void JsonParser::skip_useless_tokens() {
 JsonProperty JsonParser::property() {
     std::string pname;
 
-    if (_current_token.type() == String) {
+    if (_current_token.type() == TokenType::String) {
         pname = std::get<std::string>(_current_token.value());
     }
 
-    eat(String);
-    eat(Column);
+    eat(TokenType::String);
+    eat(TokenType::Column);
 
     return { pname, value() };
 }
@@ -458,76 +433,73 @@ JsonValue JsonParser::value() {
     JsonResource resource;
 
     switch (_current_token.type()) {
-        case ObjectStart: {
-            eat(ObjectStart);
+        case TokenType::ObjectStart: {
+            eat(TokenType::ObjectStart);
             JsonObject json_object;
 
-            while (_current_token.type() != ObjectEnd && _current_token.type() != _EOF) {
+            while (_current_token.type() != TokenType::ObjectEnd && _current_token.type() != TokenType::_EOF) {
                 json_object.insert(property());
             }
 
-            eat(ObjectEnd);
+            eat(TokenType::ObjectEnd);
             resource = JsonResource(json_object);
             break;
         }
 
-        case ArrayStart: {
-            eat(ArrayStart);
+        case TokenType::ArrayStart: {
+            eat(TokenType::ArrayStart);
             JsonArray json_array;
 
-            while (_current_token.type() != ArrayEnd && _current_token.type() != _EOF) {
+            while (_current_token.type() != TokenType::ArrayEnd && _current_token.type() != TokenType::_EOF) {
                 json_array.push_back(value());
             }
 
-            eat(ArrayEnd);
+            eat(TokenType::ArrayEnd);
             resource = JsonResource(json_array);
             break;
         }
 
-        case Number: {
+        case TokenType::Number: {
             auto token = _current_token;
 
-            eat(Number);
+            eat(TokenType::Number);
             double value = std::get<double>(token.value());
             resource = JsonResource(value);
             break;
         }
 
-        case String: {
+        case TokenType::String: {
             auto token = _current_token;
 
-            eat(String);
+            eat(TokenType::String);
             std::string value = std::get<std::string>(token.value());
             resource = JsonResource(value);
             break;
         }
 
-        case Bool: {
+        case TokenType::Bool: {
             auto token = _current_token;
 
-            eat(Bool);
+            eat(TokenType::Bool);
             bool value = std::get<bool>(token.value());
             resource = JsonResource(value);
             break;
         }
 
-        case Null: {
+        case TokenType::Null: {
             auto token = _current_token;
 
-            eat(Null);
+            eat(TokenType::Null);
             // Set type to null and leave all values empty
             resource = JsonResource();
             break;
         }
     }
 
-    // If none of these ifs is satisfied, EOF was reached
-    if (_current_token.type() == _EOF) {
-        return JsonValue(resource);
-    }
-
-    if (_current_token.type() != ObjectEnd && _current_token.type() != ArrayEnd) {
-        eat(Comma);
+    if (_current_token.type() != TokenType::ObjectEnd
+        && _current_token.type() != TokenType::ArrayEnd
+        && _current_token.type() != TokenType::_EOF) {
+        eat(TokenType::Comma);
     }
 
     return JsonValue(resource);
@@ -636,7 +608,7 @@ bool Tokenizer::parse_bool() {
 Token Tokenizer::next_token() {
     while (!_eof_reached) {
         if (is_digit(_current_char)) {
-            return Token(Number, parse_number());
+            return Token(TokenType::Number, parse_number());
         }
 
         Token t;
@@ -645,50 +617,50 @@ Token Tokenizer::next_token() {
             case '\"': {
                 char stop_at = _current_char;
                 advance();
-                t = Token(String, parse_string(stop_at));
+                t = Token(TokenType::String, parse_string(stop_at));
                 break;
             }
             case ',': {
-                t = Token(Comma, _current_char);
+                t = Token(TokenType::Comma, _current_char);
                 break;
             }
             case '[': {
-                t = Token(ArrayStart, _current_char);
+                t = Token(TokenType::ArrayStart, _current_char);
                 break;
             }
             case ']': {
-                t =  Token(ArrayEnd, _current_char);
+                t =  Token(TokenType::ArrayEnd, _current_char);
                 break;
             }
             case '{': {
-                t = Token(ObjectStart, _current_char);
+                t = Token(TokenType::ObjectStart, _current_char);
                 break;
             }
             case '}': {
-                t = Token(ObjectEnd, _current_char);
+                t = Token(TokenType::ObjectEnd, _current_char);
                 break;
             }
             case ':': {
-                t = Token(Column, _current_char);
+                t = Token(TokenType::Column, _current_char);
                 break;
             }
             case ' ': {
-                t = Token(WhiteSpace, _current_char);
+                t = Token(TokenType::WhiteSpace, _current_char);
                 break;
             }
             case '\n': {
-                t = Token(NewLine, _current_char);
+                t = Token(TokenType::NewLine, _current_char);
                 break;
             }
             case '\t': {
-                t = Token(Tab, _current_char);
+                t = Token(TokenType::Tab, _current_char);
                 break;
             }
             default: {
                 if (can_be_bool()) {
-                    t = Token(Bool, parse_bool());
+                    t = Token(TokenType::Bool, parse_bool());
                 } else if (can_be_null()) {
-                    t = Token(Null, parse_null());
+                    t = Token(TokenType::Null, parse_null());
                 }
 
                 break;
@@ -699,7 +671,7 @@ Token Tokenizer::next_token() {
         return t;
     }
 
-    return Token(_EOF, ' ');
+    return Token(TokenType::_EOF, ' ');
 }
 
 bool Tokenizer::is_digit(char some_char) const {
