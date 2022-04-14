@@ -4,9 +4,53 @@
 #include <string>
 #include <fstream>
 
+#include <curl/curl.h>
+
 #include <JsonParser/json_parser.hpp>
 
-int main(void) {
+namespace HTTPJson
+{
+
+static size_t write_response_buffer(void* ptr, size_t len, size_t byte_per_element, std::string* data)
+{
+    size_t mem_size = len * byte_per_element;
+    data->append(static_cast<char*>(ptr), mem_size);
+    return mem_size;
+}
+
+std::string fetch_json_data(const char* remote_json_url)
+{
+    std::string response_buffer;
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    CURL* handle = curl_easy_init();
+
+    if (!handle) {
+        std::cout << "Bad curl handle\n";
+        exit(1);
+    }
+
+    curl_easy_setopt(handle, CURLOPT_URL, remote_json_url);
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_response_buffer);
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response_buffer);
+
+    CURLcode response_code = curl_easy_perform(handle);
+    if (response_code != CURLE_OK) {
+        return "";
+    }
+
+    return response_buffer;
+}
+
+}
+
+const char* remote_json_url =
+    "https://gist.githubusercontent.com/sunilshenoy/23a3e7132c27d62599ba741bce13056a/raw/517b07fc382c843dcc7d444046d959a318695245/sample_json.json";
+
+//https://www.json.org/json-en.html
+int main(void)
+{
+    std::string json_remote_string = HTTPJson::fetch_json_data(remote_json_url);
+
     std::ifstream infile("./test/test.json");
     std::string json_string((std::istreambuf_iterator<char>(infile)),
                             (std::istreambuf_iterator<char>()));
@@ -14,19 +58,18 @@ int main(void) {
     JsonParser parser(json_string);
     JsonObject json_object = parser.parse();
 
-    auto bobject = json_object.at("batters");
-    if (auto barray = bobject.at("batter")) {
-        if (auto bobject = barray.value().at(0)) {
-            if (auto id = bobject.value().at("id")) {
-                std::cout << "\"id\": " << id.value().string().value() << "\n";
-            }
-        }
+    JsonParser parser1(json_remote_string);
+    JsonObject json_remote_object = parser1.parse();
+
+    auto obj1 = json_remote_object.at("clientIdentiferData");
+    if (auto prop = obj1.at("clientID")) {
+        std::cout << "clientID: " << prop.value().string().value() << "\n";
     }
 
     auto s = json({
         {"name", json("test")},
         {"number", json(123)},
-        {"number_decimal", json(123.123)},
+        {"nu\\\'mber_decimal", json(123.123)},
         {"an_array", json({
                 json(true),
                 json_null(),
