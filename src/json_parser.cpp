@@ -30,7 +30,6 @@ void JsonParser::parsing_error(const Token& expected) {
 
 void JsonParser::eat(TokenType token_type) {
     if (_current_token.type() == token_type) {
-        // std::cout << "Ate token: " << _current_token.name() << " <---- \n";
         _current_token = _tokenizer.next_token();
     } else {
         parsing_error(Token(token_type, ' '));
@@ -121,7 +120,6 @@ JsonValue JsonParser::value() {
             auto token = _current_token;
 
             eat(TokenType::Null);
-            // Set type to null and leave all values empty
             resource = JsonResource();
             break;
         }

@@ -17,6 +17,7 @@ class Tokenizer {
     void advance();
     bool parse_null();
     bool parse_bool();
+    bool is_escapable(char escaped) const;
     double parse_number();
     std::string parse_string(char stop_at);
     void consume_whitespaces();

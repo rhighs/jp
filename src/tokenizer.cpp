@@ -23,10 +23,32 @@ void Tokenizer::consume_whitespaces() {
     }
 }
 
+bool Tokenizer::is_escapable(char escaped) const {
+    switch (escaped) {
+        case 'n':
+        case '\\':
+        case 'b':
+        case 'r':
+        case 'f':
+        case 't':
+        case '\"':
+        case '\'': return false;
+        default: return true;
+    }
+}
+
 std::string Tokenizer::parse_string(char stop_at) {
     std::string parsed_string;
 
     while (_current_char != stop_at) {
+        // Ignore escaped character, if escapable
+        if (_current_char == '\\') {
+            advance();
+            if (!is_escapable(_current_char)) {
+                parsing_error();
+            }
+        }
+
         if (_eof_reached) {
             parsing_error();
         }
