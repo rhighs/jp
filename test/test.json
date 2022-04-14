@@ -3,7 +3,7 @@
     "type": "donut",
     "name": "Cake",
     "ppu": 0.55,
-    "batters": {
+    "batt\"ers": {
         "batter": [
             {
                 "id": "1001",

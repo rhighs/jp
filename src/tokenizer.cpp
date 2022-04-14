@@ -18,22 +18,32 @@ void Tokenizer::advance() {
 }
 
 void Tokenizer::consume_whitespaces() {
-    while (_current_char == ' ') {
+    static std::string whitespace_defs = {
+        ' ',
+        '\0',
+        '\u0020',
+        '\u000A',
+        '\u000D',
+        '\u0009'
+    };
+
+    while (whitespace_defs.find(_current_char) != std::string::npos) {
         advance();
     }
 }
 
-bool Tokenizer::is_escapable(char escaped) const {
-    switch (escaped) {
-        case 'n':
-        case '\\':
-        case 'b':
-        case 'r':
-        case 'f':
-        case 't':
-        case '\"':
-        case '\'': return false;
-        default: return true;
+char Tokenizer::catch_escape() const {
+    switch (_current_char) {
+        case 'n': return '\n';
+        case '\\': return '\\';
+        case 'b': return '\b';
+        case 'r': return '\r';
+        case 'f': return '\f';
+        case 't': return '\t';
+        case '\"': return '\"';
+        case '\'': return '\'';
+        case 'u': // Should handle unicode chars...
+        default: return _current_char; // just return the current char if nothing matches
     }
 }
 
@@ -41,20 +51,19 @@ std::string Tokenizer::parse_string(char stop_at) {
     std::string parsed_string;
 
     while (_current_char != stop_at) {
-        // Ignore escaped character, if escapable
+        // Check for escapes
         if (_current_char == '\\') {
             advance();
-            if (!is_escapable(_current_char)) {
-                parsing_error();
-            }
+            parsed_string += catch_escape();
+            advance();
+        } else {
+            parsed_string += _current_char;
+            advance();
         }
 
         if (_eof_reached) {
             parsing_error();
         }
-
-        parsed_string += _current_char;
-        advance();
     }
 
     return parsed_string;
