@@ -56,17 +56,15 @@ int main(void)
                             (std::istreambuf_iterator<char>()));
 
     JsonParser parser(json_string);
-    JsonObject json_object = parser.parse();
+    JsonValue json_object = parser.parse();
 
     JsonParser parser1(json_remote_string);
-    JsonObject json_remote_object = parser1.parse();
+    JsonValue json_remote_object = parser1.parse();
 
-    auto obj1 = json_remote_object.at("clientIdentiferData");
-    if (auto prop = obj1.at("clientID")) {
-        std::cout << "clientID: " << prop.value().string().value() << "\n";
-    }
+    JsonValue prop = json_remote_object["clientIdentiferData"]["clientID"];
+    std::cout << "clientID: " << prop.string() << "\n";
 
-    auto s = json({
+    auto o = json({
         {"name", json("test")},
         {"number", json(123)},
         {"nu\\\'mber_decimal", json(123.123)},
@@ -78,14 +76,18 @@ int main(void)
                     {"nested", json("some string")}
                 })
             })}
-    }).serialized();
+    });
+
+    o.object().insert({ "cringe", json(true) });
+
+    auto s = o.serialized();
 
     std::cout << "Parsing serialized string: " << s << "\n";
     parser = JsonParser(s);
-    json_object = parser.parse();
+    JsonValue njson_object = parser.parse();
 
-    auto prop = json_object.at("number");
-    std::cout << "\"number\": " << prop.number().value() << "\n";
+    JsonValue nprop = njson_object["an_array"][0];
+    std::cout << "\"number\": " << nprop.boolean() << "\n";
 
     return 0;
 }

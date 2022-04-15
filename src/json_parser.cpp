@@ -24,7 +24,6 @@ void JsonParser::parsing_error(const Token& expected) {
             break;
     }
     std::cerr << "\tExpected token: <" << expected.name() << ">\n";
-
     exit(1);
 }
 
@@ -134,6 +133,6 @@ JsonValue JsonParser::value() {
     return JsonValue(resource);
 }
 
-JsonObject JsonParser::parse() {
-    return value().object().value();
+JsonValue JsonParser::parse() {
+    return value();
 }

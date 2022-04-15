@@ -6,6 +6,8 @@
 #include <string>
 #include <optional>
 
+#include <cassert>
+
 #include "JsonParser/token.hpp"
 #include "JsonParser/tokenizer.hpp"
 
@@ -79,68 +81,61 @@ public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
 
-    std::optional<bool> boolean() const {
-        if (_resource.type() != JsonValueType::Boolean) {
-            return {};
-        }
-
-        return _resource._bool_value;
-    }
-
-    std::optional<double> number() const {
-        if (_resource.type() != JsonValueType::Number) {
-            return {};
-        }
-
-        return _resource._number_value;
-    }
-
-    std::optional<std::string> string() const {
-        if (_resource.type() != JsonValueType::String) {
-            return {};
-        }
-
-        return _resource._string_value;
-    }
-
-    std::optional<JsonValue> at(const std::string& key) const {
-        if (_resource.type() != JsonValueType::Object
-            || _resource._object_value.find(key) == _resource._object_value.end()) {
-            return {};
-        }
+    JsonValue& operator[](const std::string& key) {
+        assert(_resource.type() == JsonValueType::Object
+            && _resource._object_value.count(key) > 0 && "Can't access json object map value, bad key");
 
         return _resource._object_value.at(key);
     }
 
-    std::optional<JsonObject> object() const {
-        if (_resource.type() != JsonValueType::Object) {
-            return {};
-        }
+    JsonValue& operator[](size_t key) {
+        assert(_resource.type() == JsonValueType::Array
+            && _resource._array_value.size() >= key && "Can't access json array value, bad index");
 
+        return _resource._array_value[key];
+    }
+
+    bool& boolean() {
+        assert(_resource.type() == JsonValueType::Boolean);
+        return _resource._bool_value;
+    }
+
+    double& number() {
+        assert(_resource.type() == JsonValueType::Number);
+        return _resource._number_value;
+    }
+
+    std::string& string() {
+        assert(_resource.type() == JsonValueType::String);
+        return _resource._string_value;
+    }
+
+    JsonValue& at(const std::string& key) {
+        assert(_resource.type() != JsonValueType::Object
+            && _resource._object_value.count(key) > 0);
+        return _resource._object_value.at(key);
+    }
+
+    JsonObject& object() {
+        assert(_resource.type() == JsonValueType::Object);
         return _resource._object_value;
     }
 
-    std::optional<JsonValue> at(size_t index) const {
-        if (_resource.type() != JsonValueType::Array
-            || index >= _resource._array_value.size()) {
-            return {};
-        }
-
+    JsonValue& at(size_t index) {
+        assert(_resource.type() == JsonValueType::Array
+            && index <= _resource._array_value.size());
         return _resource._array_value[index];
     }
 
-    std::optional<JsonArray> array() const {
-        if (_resource.type() != JsonValueType::Array) {
-            return {};
-        }
-
+    JsonArray& array() {
+        assert(_resource.type() == JsonValueType::Array);
         return _resource._array_value;
     }
 
     std::string serialized() const {
         switch (_resource.type()) {
             case JsonValueType::Number: {
-                auto str = std::to_string(number().value());
+                auto str = std::to_string(_resource._number_value);
                 str.erase(str.find_last_not_of('0') + 1, std::string::npos);
 
                 if (*(str.end() - 1) == '.') {
@@ -151,11 +146,11 @@ public:
             }
 
             case JsonValueType::String: {
-                return "\"" + string().value() + "\"";
+                return "\"" + _resource._string_value + "\"";
             }
 
             case JsonValueType::Boolean: {
-                return boolean().value() ? "true" : "false";
+                return _resource._bool_value ? "true" : "false";
             }
 
             case JsonValueType::Null: {
@@ -166,7 +161,7 @@ public:
                 std::string serialized_object = "{";
 
                 size_t i = 0;
-                auto object_ = object().value();
+                auto object_ = _resource._object_value;
                 for (const auto& pair : object_) {
                     serialized_object += "\"" + pair.first + "\": ";
                     serialized_object += pair.second.serialized();
@@ -183,7 +178,7 @@ public:
                 std::string serialized_array = "[";
 
                 size_t i = 0;
-                auto array_ = array().value();
+                auto array_ = _resource._array_value;
                 for (const auto& value : array_) {
                     serialized_array += value.serialized();
 
@@ -219,7 +214,7 @@ public:
         _current_token = _tokenizer.next_token();
     }
 
-    JsonObject parse();
+    JsonValue parse();
 
 private:
     JsonValue value();
