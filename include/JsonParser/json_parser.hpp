@@ -81,6 +81,9 @@ public:
     JsonValue() : _resource(JsonResource()) {}
     JsonValue(JsonResource resource) : _resource(resource) {}
 
+    JsonValue(const JsonValue& other) = delete;
+    JsonValue& operator=(const JsonValue& other) = delete;
+
     JsonValue& operator[](const std::string& key) {
         assert(_resource.type() == JsonValueType::Object
             && _resource._object_value.count(key) > 0 && "Can't access json object map value, bad key");
@@ -93,6 +96,24 @@ public:
             && _resource._array_value.size() >= key && "Can't access json array value, bad index");
 
         return _resource._array_value[key];
+    }
+
+    void operator=(bool boolean) {
+    }
+
+    void operator=(const JsonValue& boolean) {
+    }
+
+    void operator=(const JsonObject& object) {
+    }
+
+    void operator=(const JsonArray& array) {
+    }
+
+    void operator=(double number) {
+    }
+
+    void operator=(const std::string& string) {
     }
 
     bool& boolean() {
