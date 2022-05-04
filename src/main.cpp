@@ -61,8 +61,9 @@ int main(void)
     JsonParser parser1(json_remote_string);
     JsonValue json_remote_object = parser1.parse();
 
-    JsonValue prop = json_remote_object["clientIdentiferData"]["clientID"];
-    std::cout << "clientID: " << prop.string() << "\n";
+    JsonValue& prop = json_remote_object["clientIdentiferData"]["clientID"];
+    prop = json(100.0);
+    std::cout << "clientID: " << prop.number() << "\n";
 
     auto o = json({
         {"name", json("test")},
