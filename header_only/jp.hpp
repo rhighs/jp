@@ -6,6 +6,8 @@
 #include <string>
 #include <optional>
 
+#include <cassert>
+
 #include <variant>
 #include <string>
 #include <map>
@@ -90,7 +92,7 @@ class Tokenizer {
     void advance();
     bool parse_null();
     bool parse_bool();
-    bool is_escapable(char escaped) const;
+    char catch_escape() const;
     double parse_number();
     std::string parse_string(char stop_at);
     void consume_whitespaces();
@@ -131,7 +133,7 @@ static const std::map<JsonValueType, const char*> JsonValueName = {
 class JsonValue;
 class JsonResource;
 
-typedef std::pair<std::string, JsonValue> JsonProperty;
+typedef std::pair<const std::string, JsonValue> JsonProperty;
 typedef std::map<std::string, JsonValue> JsonObject;
 typedef std::vector<JsonValue> JsonArray;
 
@@ -178,126 +180,70 @@ class JsonValue {
 
 public:
     JsonValue() : _resource(JsonResource()) {}
-    JsonValue(JsonResource resource) : _resource(resource) {}
+    JsonValue(const JsonResource&& resource) : _resource(resource) {}
 
-    std::optional<bool> boolean() const {
-        if (_resource.type() != JsonValueType::Boolean) {
-            return {};
-        }
+    /*
+    JsonValue(const JsonValue& other) = delete;
+    JsonValue& operator=(const JsonValue& other) = delete;
+    */
 
-        return _resource._bool_value;
-    }
-
-    std::optional<double> number() const {
-        if (_resource.type() != JsonValueType::Number) {
-            return {};
-        }
-
-        return _resource._number_value;
-    }
-
-    std::optional<std::string> string() const {
-        if (_resource.type() != JsonValueType::String) {
-            return {};
-        }
-
-        return _resource._string_value;
-    }
-
-    std::optional<JsonValue> at(const std::string& key) const {
-        if (_resource.type() != JsonValueType::Object
-            || _resource._object_value.find(key) == _resource._object_value.end()) {
-            return {};
-        }
+    JsonValue& operator[](const std::string& key) {
+        assert(_resource.type() == JsonValueType::Object
+            && _resource._object_value.count(key) > 0 && "Can't access json object map value, bad key");
 
         return _resource._object_value.at(key);
     }
 
-    std::optional<JsonObject> object() const {
-        if (_resource.type() != JsonValueType::Object) {
-            return {};
-        }
+    JsonValue& operator[](size_t key) {
+        assert(_resource.type() == JsonValueType::Array
+            && _resource._array_value.size() >= key && "Can't access json array value, bad index");
 
+        return _resource._array_value[key];
+    }
+
+    template <typename ValueType>
+    void operator=(ValueType value) {
+        _resource = JsonResource(std::forward<ValueType>(value));
+    }
+
+    bool& boolean() {
+        assert(_resource.type() == JsonValueType::Boolean);
+        return _resource._bool_value;
+    }
+
+    double& number() {
+        assert(_resource.type() == JsonValueType::Number);
+        return _resource._number_value;
+    }
+
+    std::string& string() {
+        assert(_resource.type() == JsonValueType::String);
+        return _resource._string_value;
+    }
+
+    JsonValue& at(const std::string& key) {
+        assert(_resource.type() != JsonValueType::Object
+            && _resource._object_value.count(key) > 0);
+        return _resource._object_value.at(key);
+    }
+
+    JsonObject& object() {
+        assert(_resource.type() == JsonValueType::Object);
         return _resource._object_value;
     }
 
-    std::optional<JsonValue> at(size_t index) const {
-        if (_resource.type() != JsonValueType::Array
-            || index >= _resource._array_value.size()) {
-            return {};
-        }
-
+    JsonValue& at(size_t index) {
+        assert(_resource.type() == JsonValueType::Array
+            && index <= _resource._array_value.size());
         return _resource._array_value[index];
     }
 
-    std::optional<JsonArray> array() const {
-        if (_resource.type() != JsonValueType::Array) {
-            return {};
-        }
-
+    JsonArray& array() {
+        assert(_resource.type() == JsonValueType::Array);
         return _resource._array_value;
     }
 
-    std::string serialized() const {
-        switch (_resource.type()) {
-            case JsonValueType::Number: {
-                auto str = std::to_string(number().value());
-                str.erase(str.find_last_not_of('0') + 1, std::string::npos);
-
-                if (*(str.end() - 1) == '.') {
-                    str = str.substr(0, str.size() - 1);
-                }
-
-                return str;
-            }
-
-            case JsonValueType::String: {
-                return "\"" + string().value() + "\"";
-            }
-
-            case JsonValueType::Boolean: {
-                return boolean().value() ? "true" : "false";
-            }
-
-            case JsonValueType::Null: {
-                return "null";
-            }
-
-            case JsonValueType::Object: {
-                std::string serialized_object = "{";
-
-                size_t i = 0;
-                auto object_ = object().value();
-                for (const auto& pair : object_) {
-                    serialized_object += "\"" + pair.first + "\": ";
-                    serialized_object += pair.second.serialized();
-
-                    if (i++ < object_.size() - 1) {
-                        serialized_object += ", ";
-                    }
-                }
-
-                return serialized_object + "}";
-            }
-
-            case JsonValueType::Array: {
-                std::string serialized_array = "[";
-
-                size_t i = 0;
-                auto array_ = array().value();
-                for (const auto& value : array_) {
-                    serialized_array += value.serialized();
-
-                    if (i++ != array_.size() - 1) {
-                        serialized_array += ", ";
-                    }
-                }
-
-                return serialized_array + "]";
-            }
-        }
-    }
-
+    std::string serialized() const;
 };
 
 /*
@@ -320,7 +266,7 @@ public:
         _current_token = _tokenizer.next_token();
     }
 
-    JsonObject parse();
+    JsonValue parse();
 
 private:
     JsonValue value();
@@ -372,6 +318,66 @@ JsonValue json_null() {
     return JsonValue(JsonResource());
 }
 
+std::string JsonValue::serialized() const {
+    switch (_resource.type()) {
+        case JsonValueType::Number: {
+            auto str = std::to_string(_resource._number_value);
+            str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+
+            if (*(str.end() - 1) == '.') {
+                str = str.substr(0, str.size() - 1);
+            }
+
+            return str;
+        }
+
+        case JsonValueType::String: {
+            return "\"" + _resource._string_value + "\"";
+        }
+
+        case JsonValueType::Boolean: {
+            return _resource._bool_value ? "true" : "false";
+        }
+
+        case JsonValueType::Null: {
+            return "null";
+        }
+
+        case JsonValueType::Object: {
+            std::string serialized_object = "{";
+
+            size_t i = 0;
+            auto object_ = _resource._object_value;
+            for (const auto& pair : object_) {
+                serialized_object += "\"" + pair.first + "\": ";
+                serialized_object += pair.second.serialized();
+
+                if (i++ < object_.size() - 1) {
+                    serialized_object += ", ";
+                }
+            }
+
+            return serialized_object + "}";
+        }
+
+        case JsonValueType::Array: {
+            std::string serialized_array = "[";
+
+            size_t i = 0;
+            auto array_ = _resource._array_value;
+            for (const auto& value : array_) {
+                serialized_array += value.serialized();
+
+                if (i++ != array_.size() - 1) {
+                    serialized_array += ", ";
+                }
+            }
+
+            return serialized_array + "]";
+        }
+    }
+}
+
 void JsonParser::parsing_error(const Token& expected) {
     std::cerr << "\tParsing error: invalid syntax at: " << _tokenizer.pos() << "\n";
     std::cerr << "\tFound unexpected token: <" << _current_token.name() << "> ";
@@ -394,7 +400,6 @@ void JsonParser::parsing_error(const Token& expected) {
             break;
     }
     std::cerr << "\tExpected token: <" << expected.name() << ">\n";
-
     exit(1);
 }
 
@@ -501,11 +506,11 @@ JsonValue JsonParser::value() {
         eat(TokenType::Comma);
     }
 
-    return JsonValue(resource);
+    return JsonValue(std::move(resource));
 }
 
-JsonObject JsonParser::parse() {
-    return value().object().value();
+JsonValue JsonParser::parse() {
+    return value();
 }
 #include <string>
 #include <iostream>
@@ -525,22 +530,32 @@ void Tokenizer::advance() {
 }
 
 void Tokenizer::consume_whitespaces() {
-    while (_current_char == ' ') {
+    static std::string whitespace_defs = {
+        ' ',
+        '\0',
+        '\u0020',
+        '\u000A',
+        '\u000D',
+        '\u0009'
+    };
+
+    while (whitespace_defs.find(_current_char) != std::string::npos) {
         advance();
     }
 }
 
-bool Tokenizer::is_escapable(char escaped) const {
-    switch (escaped) {
-        case 'n':
-        case '\\':
-        case 'b':
-        case 'r':
-        case 'f':
-        case 't':
-        case '\"':
-        case '\'': return false;
-        default: return true;
+char Tokenizer::catch_escape() const {
+    switch (_current_char) {
+        case 'n': return '\n';
+        case '\\': return '\\';
+        case 'b': return '\b';
+        case 'r': return '\r';
+        case 'f': return '\f';
+        case 't': return '\t';
+        case '\"': return '\"';
+        case '\'': return '\'';
+        case 'u': // Should handle unicode chars...
+        default: return _current_char; // just return the current char if nothing matches
     }
 }
 
@@ -548,20 +563,19 @@ std::string Tokenizer::parse_string(char stop_at) {
     std::string parsed_string;
 
     while (_current_char != stop_at) {
-        // Ignore escaped character, if escapable
+        // Check for escapes
         if (_current_char == '\\') {
             advance();
-            if (!is_escapable(_current_char)) {
-                parsing_error();
-            }
+            parsed_string += catch_escape();
+            advance();
+        } else {
+            parsed_string += _current_char;
+            advance();
         }
 
         if (_eof_reached) {
             parsing_error();
         }
-
-        parsed_string += _current_char;
-        advance();
     }
 
     return parsed_string;
