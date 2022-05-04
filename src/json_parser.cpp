@@ -2,6 +2,66 @@
 
 #include "JsonParser/json_parser.hpp"
 
+std::string JsonValue::serialized() const {
+    switch (_resource.type()) {
+        case JsonValueType::Number: {
+            auto str = std::to_string(_resource._number_value);
+            str.erase(str.find_last_not_of('0') + 1, std::string::npos);
+
+            if (*(str.end() - 1) == '.') {
+                str = str.substr(0, str.size() - 1);
+            }
+
+            return str;
+        }
+
+        case JsonValueType::String: {
+            return "\"" + _resource._string_value + "\"";
+        }
+
+        case JsonValueType::Boolean: {
+            return _resource._bool_value ? "true" : "false";
+        }
+
+        case JsonValueType::Null: {
+            return "null";
+        }
+
+        case JsonValueType::Object: {
+            std::string serialized_object = "{";
+
+            size_t i = 0;
+            auto object_ = _resource._object_value;
+            for (const auto& pair : object_) {
+                serialized_object += "\"" + pair.first + "\": ";
+                serialized_object += pair.second.serialized();
+
+                if (i++ < object_.size() - 1) {
+                    serialized_object += ", ";
+                }
+            }
+
+            return serialized_object + "}";
+        }
+
+        case JsonValueType::Array: {
+            std::string serialized_array = "[";
+
+            size_t i = 0;
+            auto array_ = _resource._array_value;
+            for (const auto& value : array_) {
+                serialized_array += value.serialized();
+
+                if (i++ != array_.size() - 1) {
+                    serialized_array += ", ";
+                }
+            }
+
+            return serialized_array + "]";
+        }
+    }
+}
+
 void JsonParser::parsing_error(const Token& expected) {
     std::cerr << "\tParsing error: invalid syntax at: " << _tokenizer.pos() << "\n";
     std::cerr << "\tFound unexpected token: <" << _current_token.name() << "> ";
@@ -130,7 +190,7 @@ JsonValue JsonParser::value() {
         eat(TokenType::Comma);
     }
 
-    return JsonValue(resource);
+    return JsonValue(std::move(resource));
 }
 
 JsonValue JsonParser::parse() {

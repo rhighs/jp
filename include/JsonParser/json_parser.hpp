@@ -32,7 +32,7 @@ static const std::map<JsonValueType, const char*> JsonValueName = {
 class JsonValue;
 class JsonResource;
 
-typedef std::pair<std::string, JsonValue> JsonProperty;
+typedef std::pair<const std::string, JsonValue> JsonProperty;
 typedef std::map<std::string, JsonValue> JsonObject;
 typedef std::vector<JsonValue> JsonArray;
 
@@ -79,10 +79,12 @@ class JsonValue {
 
 public:
     JsonValue() : _resource(JsonResource()) {}
-    JsonValue(JsonResource resource) : _resource(resource) {}
+    JsonValue(const JsonResource&& resource) : _resource(resource) {}
 
+    /*
     JsonValue(const JsonValue& other) = delete;
     JsonValue& operator=(const JsonValue& other) = delete;
+    */
 
     JsonValue& operator[](const std::string& key) {
         assert(_resource.type() == JsonValueType::Object
@@ -91,6 +93,7 @@ public:
         return _resource._object_value.at(key);
     }
 
+
     JsonValue& operator[](size_t key) {
         assert(_resource.type() == JsonValueType::Array
             && _resource._array_value.size() >= key && "Can't access json array value, bad index");
@@ -98,22 +101,9 @@ public:
         return _resource._array_value[key];
     }
 
-    void operator=(bool boolean) {
-    }
-
-    void operator=(const JsonValue& boolean) {
-    }
-
-    void operator=(const JsonObject& object) {
-    }
-
-    void operator=(const JsonArray& array) {
-    }
-
-    void operator=(double number) {
-    }
-
-    void operator=(const std::string& string) {
+    template <typename ValueType>
+    void operator=(ValueType value) {
+        _resource = JsonResource(std::forward<ValueType>(value));
     }
 
     bool& boolean() {
@@ -153,66 +143,7 @@ public:
         return _resource._array_value;
     }
 
-    std::string serialized() const {
-        switch (_resource.type()) {
-            case JsonValueType::Number: {
-                auto str = std::to_string(_resource._number_value);
-                str.erase(str.find_last_not_of('0') + 1, std::string::npos);
-
-                if (*(str.end() - 1) == '.') {
-                    str = str.substr(0, str.size() - 1);
-                }
-
-                return str;
-            }
-
-            case JsonValueType::String: {
-                return "\"" + _resource._string_value + "\"";
-            }
-
-            case JsonValueType::Boolean: {
-                return _resource._bool_value ? "true" : "false";
-            }
-
-            case JsonValueType::Null: {
-                return "null";
-            }
-
-            case JsonValueType::Object: {
-                std::string serialized_object = "{";
-
-                size_t i = 0;
-                auto object_ = _resource._object_value;
-                for (const auto& pair : object_) {
-                    serialized_object += "\"" + pair.first + "\": ";
-                    serialized_object += pair.second.serialized();
-
-                    if (i++ < object_.size() - 1) {
-                        serialized_object += ", ";
-                    }
-                }
-
-                return serialized_object + "}";
-            }
-
-            case JsonValueType::Array: {
-                std::string serialized_array = "[";
-
-                size_t i = 0;
-                auto array_ = _resource._array_value;
-                for (const auto& value : array_) {
-                    serialized_array += value.serialized();
-
-                    if (i++ != array_.size() - 1) {
-                        serialized_array += ", ";
-                    }
-                }
-
-                return serialized_array + "]";
-            }
-        }
-    }
-
+    std::string serialized() const;
 };
 
 /*
