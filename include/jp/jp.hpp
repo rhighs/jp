@@ -272,7 +272,6 @@ private:
 
     void parsing_error(const Token& header);
     void eat(TokenType token_type);
-    void skip_useless_tokens();
 };
 
 inline
@@ -318,6 +317,10 @@ JsonValue json_null() {
 
 std::string JsonValue::serialized() const {
     switch (_resource.type()) {
+        case JsonValueType::String: { return "\"" + _resource._string_value + "\""; }
+        case JsonValueType::Boolean: { return _resource._bool_value ? "true" : "false"; }
+        case JsonValueType::Null: { return "null"; }
+
         case JsonValueType::Number: {
             auto str = std::to_string(_resource._number_value);
             str.erase(str.find_last_not_of('0') + 1, std::string::npos);
@@ -327,18 +330,6 @@ std::string JsonValue::serialized() const {
             }
 
             return str;
-        }
-
-        case JsonValueType::String: {
-            return "\"" + _resource._string_value + "\"";
-        }
-
-        case JsonValueType::Boolean: {
-            return _resource._bool_value ? "true" : "false";
-        }
-
-        case JsonValueType::Null: {
-            return "null";
         }
 
         case JsonValueType::Object: {
@@ -373,6 +364,8 @@ std::string JsonValue::serialized() const {
 
             return serialized_array + "]";
         }
+
+        default: return std::string();
     }
 }
 
@@ -399,15 +392,7 @@ void JsonParser::parsing_error(const Token& expected) {
     }
 
     std::cerr << "\tExpected token: <" << expected.name() << ">\n";
-    exit(1);
-}
-
-void JsonParser::skip_useless_tokens() {
-    while (_current_token.type() == TokenType::WhiteSpace
-        || _current_token.type() == TokenType::Tab
-        || _current_token.type() == TokenType::NewLine) {
-        _current_token = _tokenizer.next_token();
-    }
+    exit(1); // Sheeesh
 }
 
 void JsonParser::eat(TokenType token_type) {
@@ -416,8 +401,6 @@ void JsonParser::eat(TokenType token_type) {
     } else {
         parsing_error(Token(token_type, ' '));
     }
-
-    skip_useless_tokens();
 }
 
 JsonProperty JsonParser::property() {
@@ -643,6 +626,16 @@ Token Tokenizer::next_token() {
             return Token(TokenType::Number, parse_number());
         }
 
+        // Skip useless chars
+        switch (_current_char) {
+            case ' ': 
+            case '\n':
+            case '\t':
+                advance();
+                continue;
+            default: break;
+        }
+
         Token t;
         switch (_current_char) {
             case '\'': 
@@ -652,43 +645,14 @@ Token Tokenizer::next_token() {
                 t = Token(TokenType::String, parse_string(stop_at));
                 break;
             }
-            case ',': {
-                t = Token(TokenType::Comma, _current_char);
-                break;
-            }
-            case '[': {
-                t = Token(TokenType::ArrayStart, _current_char);
-                break;
-            }
-            case ']': {
-                t =  Token(TokenType::ArrayEnd, _current_char);
-                break;
-            }
-            case '{': {
-                t = Token(TokenType::ObjectStart, _current_char);
-                break;
-            }
-            case '}': {
-                t = Token(TokenType::ObjectEnd, _current_char);
-                break;
-            }
-            case ':': {
-                t = Token(TokenType::Column, _current_char);
-                break;
-            }
-            case ' ': {
-                t = Token(TokenType::WhiteSpace, _current_char);
-                break;
-            }
-            case '\n': {
-                t = Token(TokenType::NewLine, _current_char);
-                break;
-            }
-            case '\t': {
-                t = Token(TokenType::Tab, _current_char);
-                break;
-            }
-            default: {
+            case ',': { t = Token(TokenType::Comma, _current_char);       break; }
+            case '[': { t = Token(TokenType::ArrayStart, _current_char);  break; }
+            case ']': { t = Token(TokenType::ArrayEnd, _current_char);    break; }
+            case '{': { t = Token(TokenType::ObjectStart, _current_char); break; }
+            case '}': { t = Token(TokenType::ObjectEnd, _current_char);   break; }
+            case ':': { t = Token(TokenType::Column, _current_char);      break; }
+
+            default:
                 if (can_be_bool()) {
                     t = Token(TokenType::Bool, parse_bool());
                 } else if (can_be_null()) {
@@ -696,7 +660,6 @@ Token Tokenizer::next_token() {
                 }
 
                 break;
-            }
         }
 
         advance();
