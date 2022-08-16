@@ -7,8 +7,8 @@ searching for a json parser.
 
 ### Parsing
 ```cpp
-#include <iostream>
-#include <JsonParser>
+#include <stdio.h>
+#include <jp/jp.hpp>
 
 const char* awesome_json =
     "{"
@@ -28,20 +28,47 @@ const char* awesome_json =
 
 int main(void)
 {
-    // TODO
+    auto jsonobject = jp::parse(awesome_json).object();
+    printf("bar: %f\n", jsonobject["foo"]["bar"].number());
     return 0;
 }
 
+---
+bar: 123.0
+---
 ```
 
 ### Serializing
 ```cpp
-#include <iostream>
-#include <JsonParser>
+#include <stdio.h>
+#include <jp/jp.hpp>
+
+const char* awesome_json =
+    "{"
+    "   \"foo\": {"
+    "       \"bar\": 123,"
+    "       \"buzz\": {"
+    "           \"data\": [1, 2, 3]"
+    "        }"
+    "   }"
+    "}";
 
 int main(void)
 {
-    // TODO
+    auto jsonobjectfoo = jp::parse(awesome_json);
+    jsonobject["foo"]["bar"] = 10;
+    printf("Serialized object: %s", jsonobject.serialized());
     return 0;
 }
+
+---
+{
+    "foo": {
+        "bar": 10,
+            "buzz": {
+                "data": [1, 2, 3]
+            }
+    }
+}
+---
 ```

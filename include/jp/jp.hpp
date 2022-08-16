@@ -495,6 +495,11 @@ JsonValue JsonParser::parse() {
     return value();
 }
 
+JsonValue parse(const std::string& json_string) {
+    JsonParser parser(json_string);
+    return parser.parse();
+}
+
 void Tokenizer::parsing_error() const {
     std::cerr << "Invalid token error at: " << _pos << std::endl;
     exit(1);
