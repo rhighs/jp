@@ -1,10 +1,5 @@
 ## Minimalistic json parser for C++17 and above
 
-I've built this json parser as a lighter alternative to the ones I
-found browsing on the internet... They included a lot of unnecessary stuff
-as well as extra features one doesn't really look for when 
-searching for a json parser.
-
 ### Parsing
 ```cpp
 #include <stdio.h>
